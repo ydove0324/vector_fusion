@@ -161,7 +161,7 @@ class ConformalLoss:
             poly = poly.buffer(0)
             points_np = np.concatenate(points_np)
             faces = Delaunay(points_np).simplices
-            is_intersect = np.array([poly.contains(Point(points_np[face].mean(0))) for face in faces], dtype=np.bool)
+            is_intersect = np.array([poly.contains(Point(points_np[face].mean(0))) for face in faces], dtype=bool)
             faces_.append(torch.from_numpy(faces[is_intersect]).to(device, dtype=torch.int64))
         return faces_
 
