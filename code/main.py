@@ -27,7 +27,7 @@ gamma = 1.0
 
 def init_shapes(svg_path, trainable: Mapping[str, bool]):
 
-    svg = f'{svg_path}.svg'
+    svg = svg_path
     canvas_width, canvas_height, shapes_init, shape_groups_init = pydiffvg.svg_to_scene(svg)
 
     parameters = edict()
@@ -38,6 +38,13 @@ def init_shapes(svg_path, trainable: Mapping[str, bool]):
         for path in shapes_init:
             path.points.requires_grad = True
             parameters.point.append(path.points)
+    # path colors:
+    if trainable.color:
+        parameters.color = []
+        for shape_group in shape_groups_init:
+            shape_group.fill_color.requires_grad = True
+            shape_group.use_even_odd_rule = True
+            parameters.color.append(shape_group.fill_color)   #bug:here
 
     return shapes_init, shape_groups_init, parameters
 
@@ -50,8 +57,8 @@ if __name__ == "__main__":
     pydiffvg.set_use_gpu(torch.cuda.is_available())
     device = pydiffvg.get_device()
 
-    print("preprocessing")
-    preprocess(cfg.font, cfg.word, cfg.optimized_letter, cfg.level_of_cc)
+    # print("preprocessing")
+    # preprocess(cfg.font, cfg.word, cfg.optimized_letter, cfg.level_of_cc)
 
     if cfg.loss.use_sds_loss:
         sds_loss = SDSLoss(cfg, device)
@@ -65,6 +72,9 @@ if __name__ == "__main__":
     # initialize shape
     print('initializing shape')
     shapes, shape_groups, parameters = init_shapes(svg_path=cfg.target, trainable=cfg.trainable)
+    # filename = "test/test.svg"
+    # check_and_create_dir(filename)
+    # save_svg.save_svg(filename,w,h,shapes,shape_groups)
 
     scene_args = pydiffvg.RenderFunction.serialize_scene(w, h, shapes, shape_groups)
     img_init = render(w, h, 2, 2, 0, None, *scene_args)
@@ -88,7 +98,7 @@ if __name__ == "__main__":
         save_svg.save_svg(filename, w, h, shapes, shape_groups)
 
     num_iter = cfg.num_iter
-    pg = [{'params': parameters["point"], 'lr': cfg.lr_base["point"]}]
+    pg = [{'params': parameters[ki], 'lr': cfg.lr_base[ki]} for ki in sorted(parameters.keys())] # 这个写法要注意
     optim = torch.optim.Adam(pg, betas=(0.9, 0.9), eps=1e-6)
 
     if cfg.loss.conformal.use_conformal_loss:
@@ -161,22 +171,22 @@ if __name__ == "__main__":
     save_svg.save_svg(
         filename, w, h, shapes, shape_groups)
 
-    combine_word(cfg.word, cfg.optimized_letter, cfg.font, cfg.experiment_dir)
+    # combine_word(cfg.word, cfg.optimized_letter, cfg.font, cfg.experiment_dir)
 
-    if cfg.save.image:
-        filename = os.path.join(
-            cfg.experiment_dir, "output-png", "output.png")
-        check_and_create_dir(filename)
-        imshow = img.detach().cpu()
-        pydiffvg.imwrite(imshow, filename, gamma=gamma)
-        if cfg.use_wandb:
-            plt.imshow(img.detach().cpu())
-            wandb.log({"img": wandb.Image(plt)}, step=step)
-            plt.close()
+    # if cfg.save.image:
+    #     filename = os.path.join(
+    #         cfg.experiment_dir, "output-png", "output.png")
+    #     check_and_create_dir(filename)
+    #     imshow = img.detach().cpu()
+    #     pydiffvg.imwrite(imshow, filename, gamma=gamma)
+    #     if cfg.use_wandb:
+    #         plt.imshow(img.detach().cpu())
+    #         wandb.log({"img": wandb.Image(plt)}, step=step)
+    #         plt.close()
 
-    if cfg.save.video:
-        print("saving video")
-        create_video(cfg.num_iter, cfg.experiment_dir, cfg.save.video_frame_freq)
+    # if cfg.save.video:
+    #     print("saving video")
+    #     create_video(cfg.num_iter, cfg.experiment_dir, cfg.save.video_frame_freq)
 
-    if cfg.use_wandb:
-        wandb.finish()
+    # if cfg.use_wandb:
+    #     wandb.finish()

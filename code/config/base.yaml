@@ -7,8 +7,10 @@ baseline:
     video_frame_freq: 1
   trainable:
     point: true
+    color: true
   lr_base:
     point: 1
+    color: 0.01
   lr:
     lr_init: 0.002
     lr_final: 0.0008

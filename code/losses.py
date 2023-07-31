@@ -16,7 +16,7 @@ class SDSLoss(nn.Module):
         self.cfg = cfg
         self.device = device
         self.pipe = StableDiffusionPipeline.from_pretrained(cfg.diffusion.model,
-                                                       torch_dtype=torch.float16, use_auth_token=cfg.token)
+                                                       torch_dtype=torch.float16, use_auth_token=cfg.token,local_files_only=True)
         self.pipe = self.pipe.to(self.device)
         # default scheduler: PNDMScheduler(beta_start=0.00085, beta_end=0.012,
         # beta_schedule="scaled_linear", num_train_timesteps=1000)
@@ -47,7 +47,7 @@ class SDSLoss(nn.Module):
         sds_loss = 0
 
         # encode rendered image
-        x = x_aug * 2. - 1.
+        x = x_aug * 2. - 1.#why?
         with torch.cuda.amp.autocast():
             init_latent_z = (self.pipe.vae.encode(x).latent_dist.sample())
         latent_z = 0.18215 * init_latent_z  # scaling_factor * init_latents

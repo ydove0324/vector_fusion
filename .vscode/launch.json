@@ -11,7 +11,10 @@
             "program": "${file}",
             "console": "integratedTerminal",
             "justMyCode": false,
-            "args": ["--semantic_concept","BUNNY","--optimized_letter","Y","--font","KaushanScript-Regular","--seed","0",]
+            "args": ["--experiment","baseline","--seed",
+            "0","--semantic_concept",
+            "bicycle", "--init_svg",
+            "bicycle",]
         }
     ]
 }

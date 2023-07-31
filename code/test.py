@@ -2,7 +2,7 @@ from diffusers import StableDiffusionPipeline
 import torch
 
 model_path = "runwayml/stable-diffusion-v1-5"
-pipe = StableDiffusionPipeline.from_pretrained(model_path, torch_dtype=torch.float16,use_auth_token="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",local_files_only=False)
+pipe = StableDiffusionPipeline.from_pretrained(model_path, torch_dtype=torch.float16,use_auth_token="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",local_files_only=True)
 pipe.to("cuda")
 
 
