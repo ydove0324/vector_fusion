@@ -47,7 +47,7 @@ class SDSLoss(nn.Module):
         sds_loss = 0
 
         # encode rendered image
-        x = x_aug * 2. - 1.#why?
+        x = x_aug * 2. - 1.#[0,1] -> [-1,1]
         with torch.cuda.amp.autocast():
             init_latent_z = (self.pipe.vae.encode(x).latent_dist.sample())
         latent_z = 0.18215 * init_latent_z  # scaling_factor * init_latents

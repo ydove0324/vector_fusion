@@ -12,9 +12,9 @@
             "console": "integratedTerminal",
             "justMyCode": false,
             "args": ["--experiment","baseline","--seed",
-            "0","--semantic_concept",
-            "bicycle", "--init_svg",
-            "bicycle",]
+            "114541","--semantic_concept",
+            "smile", "--init_svg",
+            "smile",]
         }
     ]
 }
