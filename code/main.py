@@ -62,7 +62,7 @@ if __name__ == "__main__":
 
     # print("preprocessing")
     # preprocess(cfg.font, cfg.word, cfg.optimized_letter, cfg.level_of_cc)
-
+    cfg.render_size = 512 # 仅供测试用
     if cfg.loss.use_sds_loss:
         sds_loss = SDSLoss(cfg, device)
 
@@ -144,10 +144,10 @@ if __name__ == "__main__":
                 plt.close()
 
         x = img.unsqueeze(0).permute(0, 3, 1, 2)  # HWC -> NCHW
-        x_aug = data_augs.forward(x)
+        # x_aug = data_augs.forward(x)
 
         # compute diffusion loss per pixel
-        loss = sds_loss(x_aug)
+        loss = sds_loss(x)
         if cfg.use_wandb:
             wandb.log({"sds_loss": loss.item()}, step=step)
 
@@ -191,7 +191,7 @@ if __name__ == "__main__":
     if cfg.save.video:
         print("saving video")
         filedir = os.path.join(cfg.experiment_dir,"video-png")
-        create_video(cfg.num_iter, cfg.experiment_dir, cfg.save.video_frame_freq)
+        create_video(cfg.num_iter, cfg.experiment_dir, cfg.save.video_frame_freq,w=cfg.render_size,h=cfg.render_size)
         sp.run(["rm","-rf",filedir])
 
     # if cfg.use_wandb:

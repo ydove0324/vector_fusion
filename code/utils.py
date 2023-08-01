@@ -203,7 +203,7 @@ def combine_word(word, letter, font, experiment_dir):
     save_image(img, f"{experiment_dir}/{font}_{word}_{letter}.png")
 
 
-def create_video(num_iter, experiment_dir, video_frame_freq):
+def create_video(num_iter, experiment_dir, video_frame_freq,w,h):
     img_array = []
     for ii in range(0, num_iter):
         if ii % video_frame_freq == 0 or ii == num_iter - 1:
@@ -215,7 +215,7 @@ def create_video(num_iter, experiment_dir, video_frame_freq):
     video_name = os.path.join(
         experiment_dir, "video.mp4")
     check_and_create_dir(video_name)
-    out = cv2.VideoWriter(video_name, cv2.VideoWriter_fourcc(*'mp4v'), 30.0, (600, 600))
+    out = cv2.VideoWriter(video_name, cv2.VideoWriter_fourcc(*'mp4v'), 30.0, (w, h))
     for iii in range(len(img_array)):
         out.write(img_array[iii])
     out.release()
