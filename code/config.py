@@ -23,13 +23,13 @@ def parse_args():
     # parser.add_argument('--font', type=str, default="none", help="font name")
     parser.add_argument('--semantic_concept', type=str, help="the semantic concept to insert")
     # parser.add_argument('--word', type=str, default="none", help="the text to work on")
-    parser.add_argument('--prompt_suffix', type=str, default="minimal flat 2d vector. lineal color."
+    parser.add_argument('--prompt_suffix', type=str, default="minimal flat 2d vector. lineal color. on a white background."
                                                              " trending on artstation")
     # parser.add_argument('--optimized_letter', type=str, default="none", help="the letter in the word to optimize")
     parser.add_argument('--batch_size', type=int, default=1)
     parser.add_argument('--use_wandb', type=int, default=0)
     parser.add_argument('--wandb_user', type=str, default="none")
-    parser.add_argument("--init_svg",type=str)
+    parser.add_argument("--optim_path",type=int,default=128)
 
     cfg = edict()
     args = parser.parse_args()
@@ -43,21 +43,21 @@ def parse_args():
     # cfg.word = cfg.semantic_concept if args.word == "none" else args.word
     # if " " in cfg.word:
     #   raise ValueError(f'no spaces are allowed')
-    cfg.caption = f"a {args.semantic_concept}. {args.prompt_suffix}"
-    cfg.log_dir = f"{args.log_dir}/{args.experiment}_{args.init_svg}"
+    cfg.caption = f"{args.semantic_concept}. {args.prompt_suffix}" 
+    cfg.filename = args.semantic_concept.replace(' ','_')
+    cfg.log_dir = f"{args.log_dir}/{args.experiment}_{cfg.filename}"
     # if args.optimized_letter in cfg.word:
     #     cfg.optimized_letter = args.optimized_letter
     # else:
     #   raise ValueError(f'letter should be in word')
     cfg.batch_size = args.batch_size
+    cfg.optim_path = args.optim_path
     cfg.token = args.token
     cfg.use_wandb = args.use_wandb
     cfg.wandb_user = args.wandb_user
     # cfg.letter = f"{args.font}_{args.optimized_letter}_scaled"
-    if args.init_svg is None:
-        raise ValueError(f'You should specify an initial svg')
-
-    cfg.target = osp.join('init_svg',f'{args.init_svg}.svg')
+   
+    cfg.target = osp.join(cfg.log_dir,'init_svg',f"{cfg.filename}.svg")
 
     return cfg
 
@@ -83,8 +83,7 @@ def set_config():
 
     # set experiment dir
     # signature = f"{cfg.letter}_concept_{cfg.semantic_concept}_seed_{cfg.seed}"
-    cfg.experiment_dir = \
-        osp.join(cfg.log_dir, cfg.target)
+    cfg.experiment_dir = cfg.log_dir
     configfile = osp.join(cfg.experiment_dir, 'config.yaml')
     print('Config:', cfg)
 

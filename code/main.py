@@ -9,7 +9,9 @@ from torch.optim.lr_scheduler import LambdaLR
 import pydiffvg
 import save_svg
 from losses import SDSLoss, ToneLoss, ConformalLoss
+from diffusers import StableDiffusionPipeline
 from config import set_config
+from LIVE import live
 from utils import (
     check_and_create_dir,
     get_data_augs,
@@ -63,8 +65,18 @@ if __name__ == "__main__":
     # print("preprocessing")
     # preprocess(cfg.font, cfg.word, cfg.optimized_letter, cfg.level_of_cc)
     cfg.render_size = 512 # 仅供测试用
+    pipe = StableDiffusionPipeline.from_pretrained(cfg.diffusion.model, torch_dtype=torch.float16,use_auth_token=cfg.token,local_files_only=True)
+    pipe = pipe.to(device)
+    SD_image = pipe(prompt=cfg.caption,height=128,width=128).images[0]
+    png_path = os.path.join(cfg.experiment_dir,'init_png',f"{cfg.filename}.png")
+    check_and_create_dir(png_path)
+    SD_image.save(png_path) #SD:生成图像
+
+
+    live(cfg_arg=cfg)#LIVE:转成矢量图
+
     if cfg.loss.use_sds_loss:
-        sds_loss = SDSLoss(cfg, device)
+        sds_loss = SDSLoss(cfg,device,pipe)
 
     h, w = cfg.render_size, cfg.render_size
 

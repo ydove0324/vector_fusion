@@ -11,10 +11,8 @@
             "program": "${file}",
             "console": "integratedTerminal",
             "justMyCode": false,
-            "args": ["--experiment","baseline","--seed",
-            "114541","--semantic_concept",
-            "smile", "--init_svg",
-            "smile",]
+            "args": ["--experiment","baseline","--seed","331",
+            "--semantic_concept","The great pyramids"]
         }
     ]
 }

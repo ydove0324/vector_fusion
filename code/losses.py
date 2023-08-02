@@ -11,12 +11,11 @@ from shapely.geometry.polygon import Polygon
 from diffusers import StableDiffusionPipeline
 
 class SDSLoss(nn.Module):
-    def __init__(self, cfg, device):
+    def __init__(self, cfg, device, pipe):
         super(SDSLoss, self).__init__()
         self.cfg = cfg
         self.device = device
-        self.pipe = StableDiffusionPipeline.from_pretrained(cfg.diffusion.model,
-                                                       torch_dtype=torch.float16, use_auth_token=cfg.token,local_files_only=True)
+        self.pipe = pipe
         self.pipe = self.pipe.to(self.device)
         # default scheduler: PNDMScheduler(beta_start=0.00085, beta_end=0.012,
         # beta_schedule="scaled_linear", num_train_timesteps=1000)
