@@ -9,10 +9,16 @@ baseline:
     point: true
     color: true
     bg: true
+    stroke:
+      width: true
+      color: True
   lr_base:
     point: 1
     color: 0.02
     bg: 0.005
+    stroke:
+      width: 0.3
+      color: 0.02
   lr:
     lr_init: 0.002
     lr_final: 0.0008

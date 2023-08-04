@@ -4,7 +4,7 @@ caption: A tall horse next to a red car. minimal flat 2d vector. lineal color. o
 config: code/config/base.yaml
 cut_size: 512
 diffusion:
-  guidance_scale: 10
+  guidance_scale: 100
   model: runwayml/stable-diffusion-v1-5
   timesteps: 1000
 experiment: baseline
@@ -27,6 +27,9 @@ lr_base:
   bg: 0.005
   color: 0.02
   point: 1
+  stroke:
+    color: 0.02
+    width: 0.3
 num_iter: 1000
 optim_path: 128
 parent_config: ''
@@ -44,6 +47,9 @@ trainable:
   bg: true
   color: true
   point: true
+  stroke:
+    color: true
+    width: true
 use_img_local: true
 use_svg_local: false
 use_wandb: 0

@@ -60,6 +60,20 @@ def init_shapes(svg_path, trainable: Mapping[str, bool]):
         parameters.bg = [para_bg]
     else:
         para_bg = torch.tensor([1.,1.,1.],requires_grad=False,device="cuda")
+        
+    if trainable.stroke.width:
+        parameters.stroke_width = []
+        for shape_group in shape_groups_init:
+            shape_group.stroke_width = shape_group.stroke_width.cuda()
+            shape_group.stroke_width.requires_grad = True
+            parameters.stroke_width.append(shape_group.stroke_width)
+            
+    if trainable.stroke.color:
+        parameters.stroke_color = []
+        for shape_group in shape_groups_init:
+            shape_group.stroke_color = shape_group.stroke_color.cuda()
+            shape_group.stroke_color.requires_grad = True
+            parameters.stroke_color.append(shape_group.stroke_color)
 
     return shapes_init, shape_groups_init, para_bg,parameters
 
