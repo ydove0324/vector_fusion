@@ -50,8 +50,8 @@ trainable:
   stroke:
     color: true
     width: true
-use_img_local: true
-use_svg_local: false
+use_img_local: false
+use_svg_local: true
 use_wandb: 0
 wandb_user: none
 xing_loss_weight: 0
