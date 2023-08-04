@@ -12,7 +12,8 @@
             "console": "integratedTerminal",
             "justMyCode": false,
             "args": ["--experiment","baseline","--seed","331",
-            "--semantic_concept","The great pyramids"]
+            "--semantic_concept","A tall horse next to a red car",
+            "--use_img_local","True"]
         }
     ]
 }

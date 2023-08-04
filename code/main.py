@@ -1,5 +1,6 @@
 from typing import Mapping
 import os
+from shutil import copy2 as copy_file
 import subprocess as sp
 from tqdm import tqdm
 from easydict import EasyDict as edict
@@ -10,6 +11,8 @@ import pydiffvg
 import save_svg
 from losses import SDSLoss, ToneLoss, ConformalLoss
 from diffusers import StableDiffusionPipeline
+from xing_loss import xing_loss
+import cv2
 from config import set_config
 from LIVE import live
 from utils import (
@@ -40,6 +43,7 @@ def init_shapes(svg_path, trainable: Mapping[str, bool]):
         parameters.point = []
         for path in shapes_init:
             path.points = path.points.cuda()
+            path.points *= 4    #补偿分辨率
             path.points.requires_grad = True
             parameters.point.append(path.points)
     # path colors:
@@ -50,9 +54,30 @@ def init_shapes(svg_path, trainable: Mapping[str, bool]):
             shape_group.fill_color.requires_grad = True
             shape_group.use_even_odd_rule = True
             parameters.color.append(shape_group.fill_color)   #bug:here
+    if trainable.bg:
+        # parameters.bg = []
+        para_bg = torch.tensor([1., 1., 1.], requires_grad=True, device="cuda")
+        parameters.bg = [para_bg]
+    else:
+        para_bg = torch.tensor([1.,1.,1.],requires_grad=False,device="cuda")
 
-    return shapes_init, shape_groups_init, parameters
+    return shapes_init, shape_groups_init, para_bg,parameters
 
+def select_best_img(init_png_dir,rejection_size,prompt):#从初始化的一批图片中选出语义最一致的
+    from PIL import Image
+    import open_clip
+    model, _, preprocess = open_clip.create_model_and_transforms('ViT-B-32', pretrained='laion2b_s34b_b79k')
+    tokenizer = open_clip.get_tokenizer('ViT-B-32')
+    images = [preprocess(Image.open(os.path.join(init_png_dir,f"{i}.png"))).unsqueeze(0) for i in range(rejection_size)] #bug here
+    text = tokenizer(prompt)
+    with torch.no_grad(), torch.cuda.amp.autocast():
+        image_features = torch.stack([model.encode_image(image).squeeze(0) for image in images])
+        text_features = model.encode_text(text)
+        image_features /= image_features.norm(dim=-1, keepdim=True)
+        text_features /= text_features.norm(dim=-1, keepdim=True)
+
+    text_probs = (100.0 * text_features @ image_features.T).softmax(dim=-1)
+    return os.path.join(init_png_dir,f"{int(torch.argmax(input=text_probs,dim=1,keepdim=False)[0])}.png")
 
 if __name__ == "__main__":
     
@@ -67,13 +92,24 @@ if __name__ == "__main__":
     cfg.render_size = 512 # 仅供测试用
     pipe = StableDiffusionPipeline.from_pretrained(cfg.diffusion.model, torch_dtype=torch.float16,use_auth_token=cfg.token,local_files_only=True)
     pipe = pipe.to(device)
-    SD_image = pipe(prompt=cfg.caption,height=128,width=128).images[0]
-    png_path = os.path.join(cfg.experiment_dir,'init_png',f"{cfg.filename}.png")
-    check_and_create_dir(png_path)
-    SD_image.save(png_path) #SD:生成图像
-
-
-    live(cfg_arg=cfg)#LIVE:转成矢量图
+    if cfg.use_svg_local == False or os.path.isfile(cfg.target) == False:
+        png_origin_path = os.path.join(cfg.experiment_dir,'init_png',f"{cfg.filename}_origin.png")    
+        if cfg.use_img_local == False or os.path.isfile(png_origin_path) == False:
+            Rejection_size = 20
+            for i in range(Rejection_size):
+                print(f"#{i}:")
+                SD_image = pipe(prompt=cfg.caption,num_inference_steps=100).images[0]    
+                filename = os.path.join(cfg.experiment_dir,"init_png",f"{i}.png")
+                check_and_create_dir(filename)
+                SD_image.save(filename)
+            selected_img = select_best_img(os.path.join(cfg.experiment_dir,'init_png'),Rejection_size,cfg.caption)
+            check_and_create_dir(png_origin_path)
+            copy_file(selected_img,png_origin_path)
+        # 这里需要把文件复制到png_origin_path
+        SD_image_compress = cv2.resize(cv2.imread(png_origin_path),(128,128))
+        png_path = os.path.join(cfg.experiment_dir,'init_png',f"{cfg.filename}.png")
+        cv2.imwrite(png_path,SD_image_compress) #SD:生成图像
+        live(cfg_arg=cfg)#LIVE:转成矢量图
 
     if cfg.loss.use_sds_loss:
         sds_loss = SDSLoss(cfg,device,pipe)
@@ -86,7 +122,7 @@ if __name__ == "__main__":
 
     # initialize shape
     print('initializing shape')
-    shapes, shape_groups, parameters = init_shapes(svg_path=cfg.target, trainable=cfg.trainable)
+    shapes, shape_groups, para_bg, parameters = init_shapes(svg_path=cfg.target, trainable=cfg.trainable)
     # filename = "test/test.svg"
     # check_and_create_dir(filename)
     # save_svg.save_svg(filename,w,h,shapes,shape_groups)
@@ -140,7 +176,7 @@ if __name__ == "__main__":
         img = render(w, h, 2, 2, step, None, *scene_args)
 
         # compose image with white background
-        img = img[:, :, 3:4] * img[:, :, :3] + torch.ones(img.shape[0], img.shape[1], 3, device=device) * (1 - img[:, :, 3:4])
+        img = img[:, :, 3:4] * img[:, :, :3] + para_bg * (1 - img[:, :, 3:4])
         img = img[:, :, :3]
 
         if cfg.save.video and (step % cfg.save.video_frame_freq == 0 or step == num_iter - 1):
@@ -160,6 +196,9 @@ if __name__ == "__main__":
 
         # compute diffusion loss per pixel
         loss = sds_loss(x)
+        if cfg.xing_loss_weight is not None and cfg.xing_loss_weight > 0:
+            loss_xing = xing_loss(parameters.point)
+            loss = loss + loss_xing * cfg.xing_loss_weight
         if cfg.use_wandb:
             wandb.log({"sds_loss": loss.item()}, step=step)
 

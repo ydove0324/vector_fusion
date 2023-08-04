@@ -1,5 +1,6 @@
 import torch
 import numpy as np
+from global_val import time_tracker
 
 
 def area(a, b, c):
@@ -20,6 +21,7 @@ def compute_sine_theta(s1, s2):  #s1 and s2 aret two segments to be uswed
     return sine_theta
 
 def xing_loss(x_list, scale=1e-3):  # x[ npoints,2]
+    time_tracker.tracker_begin()    #O(xing_loss) = O(path_num * num_segment) approximates 128 * (4 * 3)
     loss = 0.
     #print(len(x_list))
     for x in x_list:
@@ -46,7 +48,7 @@ def xing_loss(x_list, scale=1e-3):  # x[ npoints,2]
 
         templ = seg_loss
         loss += templ * scale #area_loss * scale
-
+    time_tracker.tracker_end()
     return loss / (len(x_list))
 
 

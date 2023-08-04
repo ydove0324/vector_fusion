@@ -72,4 +72,4 @@ experiment_64:
 experiment_128:
   path_schedule:
     type: list
-    schedule: [8,16,32,72]
+    schedule: [4,8,16,32,68]

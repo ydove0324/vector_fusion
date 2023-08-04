@@ -30,6 +30,8 @@ def parse_args():
     parser.add_argument('--use_wandb', type=int, default=0)
     parser.add_argument('--wandb_user', type=str, default="none")
     parser.add_argument("--optim_path",type=int,default=128)
+    parser.add_argument("--use_img_local",type=bool,default=False)
+    parser.add_argument("--use_svg_local",type=bool,default=False)
 
     cfg = edict()
     args = parser.parse_args()
@@ -40,6 +42,8 @@ def parse_args():
     cfg.seed = args.seed
     # cfg.font = args.font
     cfg.semantic_concept = args.semantic_concept
+    cfg.use_img_local = args.use_img_local
+    cfg.use_svg_local = args.use_svg_local
     # cfg.word = cfg.semantic_concept if args.word == "none" else args.word
     # if " " in cfg.word:
     #   raise ValueError(f'no spaces are allowed')

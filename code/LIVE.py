@@ -13,6 +13,7 @@ import errno
 from tqdm import tqdm
 from torch.optim.lr_scheduler import CosineAnnealingLR, LambdaLR
 from torch.nn.functional import adaptive_avg_pool2d
+from global_val import time_tracker
 import warnings
 warnings.filterwarnings("ignore")
 
@@ -454,6 +455,7 @@ def live(cfg_arg,
     for path_idx, pathn in enumerate(path_schedule):
         loss_list = []
         print("=> Adding [{}] paths, [{}] ...".format(pathn, cfg.seginit.type))
+        print(f"xing_loss has spent {time_tracker.get_cost_time()} seconds")
         pathn_record.append(pathn)
         pathn_record_str = '-'.join([str(i) for i in pathn_record])
 

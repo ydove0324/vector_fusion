@@ -8,17 +8,20 @@ baseline:
   trainable:
     point: true
     color: true
+    bg: true
   lr_base:
     point: 1
-    color: 0.01
+    color: 0.02
+    bg: 0.005
   lr:
     lr_init: 0.002
     lr_final: 0.0008
     lr_delay_mult: 0.1
     lr_delay_steps: 100
-  num_iter: 500
+  num_iter: 1000
   render_size: 600
   cut_size: 512
+  xing_loss_weight: 0
   level_of_cc: 0 # 0 - original number of cc / 1 - recommended / 2 - more control points
   seed: 0
   diffusion:
