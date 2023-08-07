@@ -10,7 +10,7 @@ OPTIM_PATH=128
 EXPERIMENT=baseline
 
 CONCEPT=bicycle
-TARGET=("A tall horse next to a red car" "A panda rowing a boat int a pond" "The Eiffel Tower")
+TARGET=("A smiling sloth wearing a leather jacket, a cowboy hat and a kilt")
 USE_IMG_LOCAL=true
 USE_SVG_LOCAL=true
 # WORD=BUNNY
@@ -20,5 +20,6 @@ ARGS="--experiment $EXPERIMENT --seed $SEED --use_wandb ${USE_WANDB} --wandb_use
 
 for t in "${TARGET[@]}"; do
     echo $t
-    CUDA_VISIBLE_DEVICES=0 python code/main.py $ARGS --semantic_concept "$t" --optim_path $OPTIM_PATH --use_img_local $USE_IMG_LOCAL --use_svg_local $USE_SVG_LOCAL
+    export CUDA_VISIBLE_DEVICES='0,1'
+    python code/main.py $ARGS --semantic_concept "$t" --optim_path $OPTIM_PATH --use_img_local $USE_IMG_LOCAL --use_svg_local $USE_SVG_LOCAL
 done

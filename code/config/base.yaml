@@ -9,8 +9,8 @@ baseline:
     point: true
     color: true
     bg: true
-    stroke_width: True
-    stroke_color: True
+    stroke_width: false
+    stroke_color: false
   lr_base:
     point: 1
     color: 0.02
