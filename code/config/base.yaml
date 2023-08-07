@@ -38,7 +38,15 @@ baseline:
       use_tone_loss: false
     conformal:
       use_conformal_loss: false
-
+from_scratch:
+  parent_config: baseline
+  num_iter: 2000
+fine_tune:
+  parent_config: baseline
+  xing_loss_weight: 1
+  num_iter: 250
+  loss:
+    use_sds_loss: False
 conformal_0.5_dist_pixel_100_kernel201:
   parent_config: baseline
   level_of_cc: 1

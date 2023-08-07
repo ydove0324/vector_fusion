@@ -7,7 +7,7 @@ WANDB_USER="none"
 SEED=331
 OPTIM_PATH=128
 
-EXPERIMENT=baseline
+EXPERIMENT=fine_tune
 
 CONCEPT=bicycle
 TARGET=("A smiling sloth wearing a leather jacket, a cowboy hat and a kilt")

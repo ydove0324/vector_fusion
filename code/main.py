@@ -31,7 +31,7 @@ pydiffvg.set_print_timing(False)
 gamma = 1.0
 
 
-def init_shapes(svg_path, trainable: Mapping[str, bool]):
+def init_shapes(svg_path, trainable: Mapping[str, bool], scale=1):
 
     svg = svg_path
     canvas_width, canvas_height, shapes_init, shape_groups_init = pydiffvg.svg_to_scene(svg)
@@ -43,7 +43,7 @@ def init_shapes(svg_path, trainable: Mapping[str, bool]):
         parameters.point = []
         for path in shapes_init:
             path.points = path.points.cuda()
-            path.points *= 4    #补偿分辨率
+            path.points *= scale    #补偿分辨率
             path.points.requires_grad = True
             parameters.point.append(path.points)
     # path colors:
@@ -136,7 +136,7 @@ if __name__ == "__main__":
 
     # initialize shape
     print('initializing shape')
-    shapes, shape_groups, para_bg, parameters = init_shapes(svg_path=cfg.target, trainable=cfg.trainable)
+    shapes, shape_groups, para_bg, parameters = init_shapes(svg_path=cfg.target, trainable=cfg.trainable,scale=1)   #fine_tune:1,else:4
     # filename = "test/test.svg"
     # check_and_create_dir(filename)
     # save_svg.save_svg(filename,w,h,shapes,shape_groups)
@@ -209,7 +209,9 @@ if __name__ == "__main__":
         # x_aug = data_augs.forward(x)
 
         # compute diffusion loss per pixel
-        loss = sds_loss(x)
+        loss = 0
+        if cfg.loss.use_sds_loss:
+            loss += sds_loss(x)
         if cfg.xing_loss_weight is not None and cfg.xing_loss_weight > 0:
             loss_xing = xing_loss(parameters.point)
             loss = loss + loss_xing * cfg.xing_loss_weight
