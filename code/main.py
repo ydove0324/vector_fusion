@@ -1,6 +1,7 @@
 from typing import Mapping
 import os
 from shutil import copy2 as copy_file
+import copy
 import subprocess as sp
 from tqdm import tqdm
 from easydict import EasyDict as edict
@@ -93,6 +94,29 @@ def select_best_img(init_png_dir,rejection_size,prompt):#从初始化的一批�
     text_probs = (100.0 * text_features @ image_features.T).softmax(dim=-1)
     return os.path.join(init_png_dir,f"{int(torch.argmax(input=text_probs,dim=1,keepdim=False)[0])}.png")
 
+def filter_low_opacity(shapes,shape_groups,threshold=0.3):
+    tag = [1 if shape_group.fill_color[-1] > threshold else 0 for shape_group in shape_groups]
+    n = len(tag)
+    cnt = 0
+    shape_groups_filter = []
+    for i in range(n):
+        if tag[i]:
+            shape_group = copy.deepcopy(shape_groups[i])
+            shape_group.shape_ids = torch.tensor([cnt])
+            cnt += 1
+            shape_groups_filter.append(shape_group)
+    return [shapes[i] for i in range(n) if tag[i] == True],shape_groups_filter
+
+def reinit(w,h,shapes,shape_groups,threshold=0.3):
+    shapes_filter,shape_groups_filter = filter_low_opacity(shapes=shapes,shape_groups=shape_groups,threshold=threshold)
+    render = pydiffvg.RenderFunction.apply
+    scene_args = pydiffvg.RenderFunction.serialize_scene(w, h, shapes_filter, shape_groups_filter)
+    img_init = render(w, h, 2, 2, 0, None, *scene_args)
+    img_init = img_init[:, :, 3:4] * img_init[:, :, :3] + \
+               torch.ones(img_init.shape[0], img_init.shape[1], 3, device="cuda") * (1 - img_init[:, :, 3:4])
+    img_init = img_init[:, :, :3]
+    
+
 if __name__ == "__main__":
     
     cfg = set_config()
@@ -178,8 +202,16 @@ if __name__ == "__main__":
 
     print("start training")
     # training loop
+    reinit_time = 80
     t_range = tqdm(range(num_iter))
     for step in t_range:
+        res_step = t_range - step
+        if res_step > 200 and step % reinit_time == 0:
+            shapes,shape_groups,parameters = reinit(w,h,shapes,shape_groups)
+            pg = [{'params': parameters[ki], 'lr': cfg.lr_base[ki]} for ki in sorted(parameters.keys())] # 这个写法要注意
+            optim = torch.optim.Adam(pg, betas=(0.9, 0.9), eps=1e-6)
+            new_scheduler = LambdaLR(optim, lr_lambda=lr_lambda, last_epoch=scheduler.last_epoch)  # lr.base * lrlambda_f
+            scheduler = new_scheduler
         if cfg.use_wandb:
             wandb.log({"learning_rate": optim.param_groups[0]['lr']}, step=step)
         optim.zero_grad()
