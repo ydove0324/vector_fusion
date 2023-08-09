@@ -146,7 +146,7 @@ def init_from_scratch(trainable,w,h,seg_path,num_path,shape_cnt,cps_poly=None):
             x,y = np.polyval(poly_x,t),np.polyval(poly_y,t)
             center = [x,y]
 
-        points = get_bezier_circle(radius=7,segments=seg_path,bias=center)
+        points = get_bezier_circle(radius=8,segments=seg_path,bias=center)
         path = pydiffvg.Path(num_control_points = torch.LongTensor([2] * seg_path),
                              points = points,
                              stroke_width = torch.tensor(0.0),
