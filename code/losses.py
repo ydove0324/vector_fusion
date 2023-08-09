@@ -27,7 +27,7 @@ class SDSLoss(nn.Module):
 
     def embed_text(self):
         # tokenizer and embed text
-        text_input = self.pipe.tokenizer(self.cfg.caption, padding="max_length",
+        text_input = self.pipe.tokenizer(f"{self.cfg.caption}", padding="max_length",
                                          max_length=self.pipe.tokenizer.model_max_length,
                                          truncation=True, return_tensors="pt")
         uncond_input = self.pipe.tokenizer([""], padding="max_length",
@@ -172,6 +172,9 @@ class ConformalLoss:
             loss_angles += (nnf.mse_loss(angles[i], self.angles[i]))
         return loss_angles
 
-
-
+def low_opacity_penalty(shape_groups):
+    loss = 0 
+    for shape_group in shape_groups:
+        loss += torch.relu(shape_group.fill_color[-1] - 0.3)
+    return loss
 

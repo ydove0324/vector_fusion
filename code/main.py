@@ -10,10 +10,12 @@ import torch
 from torch.optim.lr_scheduler import LambdaLR
 import pydiffvg
 import save_svg
-from losses import SDSLoss, ToneLoss, ConformalLoss
+from losses import SDSLoss, ToneLoss, ConformalLoss, low_opacity_penalty
 from diffusers import StableDiffusionPipeline
 from xing_loss import xing_loss
 import cv2
+import numpy as np
+from numpy import random as npr
 from config import set_config
 from LIVE import live
 from utils import (
@@ -31,20 +33,13 @@ warnings.filterwarnings("ignore")
 pydiffvg.set_print_timing(False)
 gamma = 1.0
 
-
-def init_shapes(svg_path, trainable: Mapping[str, bool], scale=1):
-
-    svg = svg_path
-    canvas_width, canvas_height, shapes_init, shape_groups_init = pydiffvg.svg_to_scene(svg)
-
-    parameters = edict()
-
+def get_parameters(shapes_init,shape_groups_init,para_bg,trainable):
     # path points
+    parameters = edict()
     if trainable.point:
         parameters.point = []
         for path in shapes_init:
             path.points = path.points.cuda()
-            path.points *= scale    #补偿分辨率
             path.points.requires_grad = True
             parameters.point.append(path.points)
     # path colors:
@@ -56,11 +51,7 @@ def init_shapes(svg_path, trainable: Mapping[str, bool], scale=1):
             shape_group.use_even_odd_rule = True
             parameters.color.append(shape_group.fill_color)   #bug:here
     if trainable.bg:
-        # parameters.bg = []
-        para_bg = torch.tensor([1., 1., 1.], requires_grad=True, device="cuda")
         parameters.bg = [para_bg]
-    else:
-        para_bg = torch.tensor([1.,1.,1.],requires_grad=False,device="cuda")
         
     if trainable.stroke_width:
         parameters.stroke_width = []
@@ -75,7 +66,21 @@ def init_shapes(svg_path, trainable: Mapping[str, bool], scale=1):
             shape_group.stroke_color = shape_group.stroke_color.cuda()
             shape_group.stroke_color.requires_grad = True
             parameters.stroke_color.append(shape_group.stroke_color)
+    return parameters
 
+
+def init_shapes(svg_path, trainable: Mapping[str, bool], scale=1):
+
+    svg = svg_path
+    canvas_width, canvas_height, shapes_init, shape_groups_init = pydiffvg.svg_to_scene(svg)
+
+    for path in shapes_init:
+        path.points *= scale    #补偿分辨率
+    if trainable.bg:
+        para_bg = torch.tensor([1., 1., 1.], requires_grad=True, device="cuda")
+    else:
+        para_bg = torch.tensor([1.,1.,1.],requires_grad=False,device="cuda")
+    parameters = get_parameters(shapes_init,shape_groups_init,para_bg,trainable)
     return shapes_init, shape_groups_init, para_bg,parameters
 
 def select_best_img(init_png_dir,rejection_size,prompt):#从初始化的一批图片中选出语义最一致的
@@ -94,8 +99,7 @@ def select_best_img(init_png_dir,rejection_size,prompt):#从初始化的一批�
     text_probs = (100.0 * text_features @ image_features.T).softmax(dim=-1)
     return os.path.join(init_png_dir,f"{int(torch.argmax(input=text_probs,dim=1,keepdim=False)[0])}.png")
 
-def filter_low_opacity(shapes,shape_groups,threshold=0.3):
-    tag = [1 if shape_group.fill_color[-1] > threshold else 0 for shape_group in shape_groups]
+def filter(shapes,shape_groups,tag):
     n = len(tag)
     cnt = 0
     shape_groups_filter = []
@@ -106,22 +110,160 @@ def filter_low_opacity(shapes,shape_groups,threshold=0.3):
             cnt += 1
             shape_groups_filter.append(shape_group)
     return [shapes[i] for i in range(n) if tag[i] == True],shape_groups_filter
+def filter_low_opacity(shapes,shape_groups,threshold=0.2,pr=1):
+    tag = [0 if shape_group.fill_color[-1] <= threshold and npr.uniform(0,1) <= pr else 1 for shape_group in shape_groups]
+    return filter(shapes,shape_groups,tag)
 
-def reinit(w,h,shapes,shape_groups,threshold=0.3):
-    shapes_filter,shape_groups_filter = filter_low_opacity(shapes=shapes,shape_groups=shape_groups,threshold=threshold)
-    render = pydiffvg.RenderFunction.apply
-    scene_args = pydiffvg.RenderFunction.serialize_scene(w, h, shapes_filter, shape_groups_filter)
-    img_init = render(w, h, 2, 2, 0, None, *scene_args)
-    img_init = img_init[:, :, 3:4] * img_init[:, :, :3] + \
-               torch.ones(img_init.shape[0], img_init.shape[1], 3, device="cuda") * (1 - img_init[:, :, 3:4])
-    img_init = img_init[:, :, :3]
+def get_bezier_circle(radius=1, segments=4, bias=None):
+    points = []
+    if bias is None:
+        bias = (npr.random(), npr.random())
+    avg_degree = 360 / (segments*3)
+    for i in range(0, segments*3):
+        point = (np.cos(np.deg2rad(i * avg_degree)),
+                    np.sin(np.deg2rad(i * avg_degree)))
+        points.append(point)
+    points = torch.tensor(points)
+    points = (points)*radius + torch.tensor(bias).unsqueeze(dim=0)
+    points = points.type(torch.FloatTensor)
+    return points
+
+def init_from_scratch(trainable,w,h,seg_path,num_path,shape_cnt,cps_poly=None):
+    n = num_path
+    get_init_point = lambda w,h:[npr.uniform(0,1) * w,npr.uniform(0,1) * h]
+    shapes = []
+    shape_groups = []
+    for i in range(n):
+        center = [0.,0.]
+        if cps_poly == None or npr.uniform(0,1) < 0.7:
+            center = get_init_point(w,h)
+        else:
+            id = npr.randint(0,len(cps_poly))
+            id_seg = npr.randint(0,4)
+            poly_x = cps_poly[id][id_seg][:,0]
+            poly_y = cps_poly[id][id_seg][:,1]
+            t = npr.uniform(0,1)
+            x,y = np.polyval(poly_x,t),np.polyval(poly_y,t)
+            center = [x,y]
+
+        points = get_bezier_circle(radius=7,segments=seg_path,bias=center)
+        path = pydiffvg.Path(num_control_points = torch.LongTensor([2] * seg_path),
+                             points = points,
+                             stroke_width = torch.tensor(0.0),
+                             is_closed = True)
+        shapes.append(path)
+        fill_color = torch.FloatTensor(npr.uniform(size=[4]))
+        path_group = pydiffvg.ShapeGroup(
+            use_even_odd_rule=True,
+            shape_ids = torch.LongTensor([shape_cnt + i]),
+            fill_color = fill_color,
+            stroke_color = torch.FloatTensor([0]*4),
+        )
+        shape_groups.append(path_group)
+    return shapes,shape_groups
+
+def get_area(w,h,shape,max_area=64):
+    N = shape.points.size()[0]
+    seg_num = N // 3
+    cps = []
+    polys = []
+    minx = w
+    maxx = 0
+    miny = h
+    maxy = 0
+    fac = np.array([1.,1.,2.,6.,24.]) #阶乘
+    invfac = 1. / fac
+    for _ in range(seg_num):
+        cp = [[0.,0.]] * 4
+        for j in range(4):
+            cnt = _*3+j
+            if cnt == 12:
+                cnt = 0
+            cp[j] = shape.points[cnt].detach().cpu().numpy()  # get control points
+            minx = min(minx,cp[j][0])
+            maxx = max(maxx,cp[j][0])
+            miny = min(miny,cp[j][1])
+            maxy = max(maxy,cp[j][1])
+        cps.append(cp)
+        Poly = np.array([[0.,0.]] * 4)
+        for j in range(4):
+            for i in range(j+1):    #得到多项式,然后把x带进去,求出t~[0,1],接着求y,算出winding_number,做inside_outside_test
+                op = (i + j) & 1
+                Poly[j] += (-1)**op * invfac[i] * invfac[j-i] * cp[i]
+            Poly[j] *= fac[3] * invfac[3-j]
+        polys.append(Poly)
+    minx = int(max(minx,0.))
+    maxx = int(min(maxx,w - 1))
+    miny = int(max(miny,0.))
+    maxy = int(min(maxy,h - 1))
+    eps = 1e-8
+    area = 0
+    if (maxx - minx) * (maxy - miny) > max_area * 40:
+        return max_area,polys
+    for x in range(minx,maxx+1):
+        for y in range(miny,maxy+1):
+            px = x + 0.5
+            py = y + 0.5
+            winding_number = 0
+            for _ in range(seg_num):
+                poly_x = copy.deepcopy(polys[_][:,0])  #x(t) = px -> x(t) - px = 0
+                poly_y = polys[_][:,1]
+                poly_x[0] -= px
+                roots = np.roots(poly_x)
+                valid_roots = [root.real for root in roots if abs(root.imag) < eps and abs(root.real - 0.5) <= 0.5]
+                y = np.polyval(poly_y, valid_roots)
+                winding_number += (y > py).sum()
+            if winding_number % 2 == 1:
+                area += 1
+            if area >= max_area:
+                return area,polys
+    return area,polys
+
+def filter_low_area(shapes,shape_groups,areas,max_area=64,pr=1):
+    tag = [0 if area < max_area and npr.uniform(0,1) <= pr else 1 for area in areas]
+    return filter(shapes,shape_groups,tag)
+
+def reinit(w,h,shapes,shape_groups,threshold=0.3,trainable=None,only_filter=False):
+    pr = 0.5 if only_filter == True else 1
+    scale = 0.6 if only_filter == True else 1
+    shapes_filter,shape_groups_filter = filter_low_opacity(shapes=shapes,shape_groups=shape_groups,threshold=threshold*scale,pr=pr)
+    areas = []
+    cps_poly = []
+    for shape in shapes_filter:
+        area, cps = get_area(w, h, shape)
+        areas.append(area)
+        cps_poly.append(cps)
+    shapes_filter,shape_groups_filter = filter_low_area(shapes=shapes_filter,shape_groups=shape_groups_filter,areas=areas,max_area=64,pr=pr)
+    print(areas)
+    # render = pydiffvg.RenderFunction.apply
+    # scene_args = pydiffvg.RenderFunction.serialize_scene(w, h, shapes_filter, shape_groups_filter)
+    # img_init = render(w, h, 2, 2, 0, None, *scene_args)
+    # img_init = img_init[:, :, 3:4] * img_init[:, :, :3] + \
+    #            torch.ones(img_init.shape[0], img_init.shape[1], 3, device="cuda") * (1 - img_init[:, :, 3:4])
+    # img_init = img_init[:, :, :3]
+    parameters = edict()
+    shapes_new,shape_groups_new = [],[]
+    n = len(shape_groups)
+    m = len(shape_groups_filter)
     
+    if only_filter == False:
+        shapes_new,shape_groups_new = init_from_scratch(trainable,w,h,4,n-m,m,cps_poly=cps_poly)
+    shapes_init = shapes_filter + shapes_new
+    shape_groups_init = shape_groups_filter + shape_groups_new
+    # path points
+    if trainable.bg:
+        para_bg = torch.tensor([1., 1., 1.], requires_grad=True, device="cuda")
+    else:
+        para_bg = torch.tensor([1.,1.,1.],requires_grad=False,device="cuda")
+    parameters = get_parameters(shapes_init,shape_groups_init,para_bg,trainable) 
+    return shapes_init,shape_groups_init,para_bg,parameters
 
 if __name__ == "__main__":
     
     cfg = set_config()
 
     # use GPU if available
+    # os.environ["CUDA_VISIBLE_DEVICES"] = '0,1'
     pydiffvg.set_use_gpu(torch.cuda.is_available())
     device = pydiffvg.get_device()
 
@@ -160,7 +302,7 @@ if __name__ == "__main__":
 
     # initialize shape
     print('initializing shape')
-    shapes, shape_groups, para_bg, parameters = init_shapes(svg_path=cfg.target, trainable=cfg.trainable,scale=1)   #fine_tune:1,else:4
+    shapes, shape_groups, para_bg, parameters = init_shapes(svg_path=cfg.target, trainable=cfg.trainable,scale=4)   #fine_tune:1,else:4
     # filename = "test/test.svg"
     # check_and_create_dir(filename)
     # save_svg.save_svg(filename,w,h,shapes,shape_groups)
@@ -202,16 +344,35 @@ if __name__ == "__main__":
 
     print("start training")
     # training loop
-    reinit_time = 80
+    reinit_time = 100
     t_range = tqdm(range(num_iter))
     for step in t_range:
-        res_step = t_range - step
-        if res_step > 200 and step % reinit_time == 0:
-            shapes,shape_groups,parameters = reinit(w,h,shapes,shape_groups)
+        res_step = num_iter - step
+        if res_step > 800 and step % reinit_time == 0:
+            shapes,shape_groups,para_bg, parameters = reinit(w,h,shapes,shape_groups,trainable=cfg.trainable)
             pg = [{'params': parameters[ki], 'lr': cfg.lr_base[ki]} for ki in sorted(parameters.keys())] # 这个写法要注意
             optim = torch.optim.Adam(pg, betas=(0.9, 0.9), eps=1e-6)
-            new_scheduler = LambdaLR(optim, lr_lambda=lr_lambda, last_epoch=scheduler.last_epoch)  # lr.base * lrlambda_f
+            lr_lambda = lambda step: learning_rate_decay(step, cfg.lr.lr_init, cfg.lr.lr_final, num_iter,
+                                                 lr_delay_steps=cfg.lr.lr_delay_steps,
+                                                 lr_delay_mult=cfg.lr.lr_delay_mult) / cfg.lr.lr_init
+            new_scheduler = LambdaLR(optim, lr_lambda=lr_lambda, last_epoch=-1)  # lr.base * lrlambda_f
             scheduler = new_scheduler
+        elif res_step > 600 and step % reinit_time == 0:
+            shapes,shape_groups,para_bg, parameters = reinit(w,h,shapes,shape_groups,trainable=cfg.trainable,only_filter=True)
+            pg = [{'params': parameters[ki], 'lr': cfg.lr_base[ki]} for ki in sorted(parameters.keys())]
+            optim = torch.optim.Adam(pg, betas=(0.9, 0.9), eps=1e-6)
+            lr_lambda = lambda step: learning_rate_decay(step, cfg.lr.lr_init, cfg.lr.lr_final, num_iter,
+                                                 lr_delay_steps=cfg.lr.lr_delay_steps,
+                                                 lr_delay_mult=cfg.lr.lr_delay_mult) / cfg.lr.lr_init
+            new_scheduler = LambdaLR(optim, lr_lambda=lr_lambda, last_epoch=-1) 
+            scheduler = new_scheduler
+        if cfg.save.init and step == 0:
+            print('saving init')
+            filename = os.path.join(
+                cfg.experiment_dir, "svg-init", "init_after_filter.svg")
+            check_and_create_dir(filename)
+            save_svg.save_svg(filename, w, h, shapes, shape_groups)
+
         if cfg.use_wandb:
             wandb.log({"learning_rate": optim.param_groups[0]['lr']}, step=step)
         optim.zero_grad()

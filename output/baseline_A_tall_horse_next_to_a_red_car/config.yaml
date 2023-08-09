@@ -27,9 +27,8 @@ lr_base:
   bg: 0.005
   color: 0.02
   point: 1
-  stroke:
-    color: 0.02
-    width: 0.3
+  stroke_color: 0.02
+  stroke_width: 0.3
 num_iter: 1000
 optim_path: 128
 parent_config: ''
@@ -44,12 +43,11 @@ semantic_concept: A tall horse next to a red car
 target: output/baseline_A_tall_horse_next_to_a_red_car\init_svg\A_tall_horse_next_to_a_red_car.svg
 token: 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
 trainable:
-  bg: true
+  bg: false
   color: true
   point: true
-  stroke:
-    color: true
-    width: true
+  stroke_color: false
+  stroke_width: false
 use_img_local: false
 use_svg_local: true
 use_wandb: 0

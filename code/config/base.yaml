@@ -8,7 +8,7 @@ baseline:
   trainable:
     point: true
     color: true
-    bg: true
+    bg: False
     stroke_width: false
     stroke_color: false
   lr_base:
@@ -38,6 +38,9 @@ baseline:
       use_tone_loss: false
     conformal:
       use_conformal_loss: false
+reinit:
+  parent_config: baseline
+  num_iter: 1500
 from_scratch:
   parent_config: baseline
   num_iter: 2000

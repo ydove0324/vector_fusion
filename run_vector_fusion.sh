@@ -2,15 +2,15 @@
 
 set -e
 
-USE_WANDB=0 # CHANGE IF YOU WANT WANDB
+USE_WANDB=1 # CHANGE IF YOU WANT WANDB
 WANDB_USER="none"
 SEED=331
 OPTIM_PATH=128
 
-EXPERIMENT=fine_tune
+EXPERIMENT=baseline
 
 CONCEPT=bicycle
-TARGET=("A smiling sloth wearing a leather jacket, a cowboy hat and a kilt")
+TARGET=("an armchair in the shape of an avocado" "a knight holding a long sword")
 USE_IMG_LOCAL=true
 USE_SVG_LOCAL=true
 # WORD=BUNNY
