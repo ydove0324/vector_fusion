@@ -11,8 +11,8 @@
             "program": "${file}",
             "console": "integratedTerminal",
             "justMyCode": false,
-            "args": ["--experiment","baseline","--seed","331",
-            "--semantic_concept","A tall horse next to a red car",
+            "args": ["--experiment","reinit","--seed","331",
+            "--semantic_concept","a train",
             "--use_svg_local","True"]
         }
     ]

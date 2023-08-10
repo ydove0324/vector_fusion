@@ -99,8 +99,8 @@ class Learning_rate_decay:
                 lr_final,
                 max_step,
                 max_warmup_step,
-                T0 = 50,
-                T_mult = 1.5):
+                T0 = 10,
+                T_mult = 2):
         self.lr_init = lr_init
         self.lr_warmup = lr_warmup
         self.lr_final = lr_final

@@ -192,12 +192,12 @@ def get_area(w,h,shape,max_area=64):
                 op = (i + j) & 1
                 Poly[j] += (-1)**op * invfac[i] * invfac[j-i] * cp[i]
             Poly[j] *= fac[3] * invfac[3-j]
-        polys.append(Poly)
+        polys.append(np.flip(Poly,0))
     minx = int(max(minx,0.))
     maxx = int(min(maxx,w - 1))
     miny = int(max(miny,0.))
     maxy = int(min(maxy,h - 1))
-    eps = 1e-8
+    eps = 1e-4
     area = 0
     if (maxx - minx) * (maxy - miny) > max_area * 50:
         return max_area,polys
@@ -220,7 +220,7 @@ def get_area(w,h,shape,max_area=64):
                 return area,polys
     return area,polys
 
-def filter_low_area(shapes,shape_groups,areas,max_area=12,pr=1):
+def filter_low_area(shapes,shape_groups,areas,max_area=64,pr=1):
     tag = [0 if area < max_area and npr.uniform(0,1) <= pr else 1 for area in areas]
     return filter(shapes,shape_groups,tag)
 
@@ -234,7 +234,7 @@ def reinit(w,h,shapes,shape_groups,threshold=0.1,trainable=None,only_filter=Fals
         area, cps = get_area(w, h, shape)
         areas.append(area)
         cps_poly.append(cps)
-    shapes_filter,shape_groups_filter = filter_low_area(shapes=shapes_filter,shape_groups=shape_groups_filter,areas=areas,max_area=24,pr=pr)
+    shapes_filter,shape_groups_filter = filter_low_area(shapes=shapes_filter,shape_groups=shape_groups_filter,areas=areas,max_area=32,pr=pr)
     print(areas)
     # render = pydiffvg.RenderFunction.apply
     # scene_args = pydiffvg.RenderFunction.serialize_scene(w, h, shapes_filter, shape_groups_filter)
@@ -271,6 +271,7 @@ if __name__ == "__main__":
     # print("preprocessing")
     # preprocess(cfg.font, cfg.word, cfg.optimized_letter, cfg.level_of_cc)
     cfg.render_size = 512 # 仅供测试用
+    compress_scale = 1
     pipe = StableDiffusionPipeline.from_pretrained(cfg.diffusion.model, torch_dtype=torch.float16,use_auth_token=cfg.token,local_files_only=True)
     pipe = pipe.to(device)
     if cfg.use_svg_local == False or os.path.isfile(cfg.target) == False:
@@ -287,7 +288,7 @@ if __name__ == "__main__":
             check_and_create_dir(png_origin_path)
             copy_file(selected_img,png_origin_path)
         # 这里需要把文件复制到png_origin_path
-        SD_image_compress = cv2.resize(cv2.imread(png_origin_path),(128,128))
+        SD_image_compress = cv2.resize(cv2.imread(png_origin_path),(cfg.render_size // compress_scale,cfg.render_size // compress_scale))
         png_path = os.path.join(cfg.experiment_dir,'init_png',f"{cfg.filename}.png")
         cv2.imwrite(png_path,SD_image_compress) #SD:生成图像
         live(cfg_arg=cfg)#LIVE:转成矢量图
@@ -303,7 +304,7 @@ if __name__ == "__main__":
 
     # initialize shape
     print('initializing shape')
-    shapes, shape_groups, para_bg, parameters = init_shapes(svg_path=cfg.target, trainable=cfg.trainable,scale=4)   #fine_tune:1,else:4
+    shapes, shape_groups, para_bg, parameters = init_shapes(svg_path=cfg.target, trainable=cfg.trainable,scale=compress_scale)   #fine_tune:1,else:4
     # filename = "test/test.svg"
     # check_and_create_dir(filename)
     # save_svg.save_svg(filename,w,h,shapes,shape_groups)
@@ -338,7 +339,7 @@ if __name__ == "__main__":
         conformal_loss = ConformalLoss(parameters, device, cfg.optimized_letter, shape_groups)
 
     lr_lambda = Learning_rate_decay(cfg.lr.lr_init, cfg.lr.lr_warmup, cfg.lr.lr_final,num_iter,
-                                                max_warmup_step=cfg.lr.max_warmup_step,T0=50,T_mult=1.5)
+                                                max_warmup_step=cfg.lr.max_warmup_step,T0=10,T_mult=2)
     # lr_schedule = [lr_lambda(i) for i in range(num_iter)]
     # schedule = [i for i in range(num_iter)]
     # _,ax = plt.subplots()
@@ -352,7 +353,7 @@ if __name__ == "__main__":
     t_range = tqdm(range(num_iter))
     for step in t_range:
         res_step = num_iter - step
-        if res_step > 800 and step % reinit_time == 0:
+        if res_step > 800 and step % reinit_time == 0 and step != 0:
             shapes,shape_groups,para_bg, parameters = reinit(w,h,shapes,shape_groups,trainable=cfg.trainable)
             pg = [{'params': parameters[ki], 'lr': cfg.lr_base[ki]} for ki in sorted(parameters.keys())] # 这个写法要注意
             optim = torch.optim.Adam(pg, betas=(0.9, 0.9), eps=1e-6)
