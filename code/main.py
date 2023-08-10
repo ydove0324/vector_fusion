@@ -198,7 +198,7 @@ def get_area(w,h,shape,max_area=64):
     maxy = int(min(maxy,h - 1))
     eps = 1e-8
     area = 0
-    if (maxx - minx) * (maxy - miny) > max_area * 40:
+    if (maxx - minx) * (maxy - miny) > max_area * 50:
         return max_area,polys
     for x in range(minx,maxx+1):
         for y in range(miny,maxy+1):
@@ -219,7 +219,7 @@ def get_area(w,h,shape,max_area=64):
                 return area,polys
     return area,polys
 
-def filter_low_area(shapes,shape_groups,areas,max_area=64,pr=1):
+def filter_low_area(shapes,shape_groups,areas,max_area=32,pr=1):
     tag = [0 if area < max_area and npr.uniform(0,1) <= pr else 1 for area in areas]
     return filter(shapes,shape_groups,tag)
 
