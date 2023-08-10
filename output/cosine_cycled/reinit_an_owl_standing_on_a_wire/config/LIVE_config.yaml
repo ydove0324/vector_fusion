@@ -1,0 +1,71 @@
+batch_size: 1
+caption: an owl standing on a wire. minimal flat 2d vector. lineal color. on a white
+  background. trending on artstation
+config: code/config/base.yaml
+coord_init:
+  type: sparse
+cut_size: 512
+debug: false
+diffusion:
+  guidance_scale: 100
+  model: runwayml/stable-diffusion-v1-5
+  timesteps: 1000
+exid: 169157537490
+experiment: reinit
+experiment_dir: output/reinit_an_owl_standing_on_a_wire
+filename: an_owl_standing_on_a_wire
+initial: circle
+level_of_cc: 0
+log_dir: output/reinit_an_owl_standing_on_a_wire
+loss:
+  bis_loss_weight: null
+  use_distance_weighted_loss: true
+  use_l1_loss: false
+  xing_loss_weight: 0.01
+lr:
+  lr_delay_mult: 0.1
+  lr_delay_steps: 100
+  lr_final: 0.0008
+  lr_init: 0.002
+lr_base:
+  bg: 0.01
+  color: 0.01
+  point: 1
+  stroke_color: null
+  stroke_width: null
+num_iter: 500
+num_segments: 4
+optim_path: 128
+parent_config: baseline
+path_schedule:
+  schedule:
+  - 4
+  - 8
+  - 16
+  - 32
+  - 68
+  type: list
+render_size: 512
+save:
+  image: false
+  init: false
+  loss: false
+  output: false
+  video: false
+seed: 0
+seginit:
+  radius: 5
+  type: circle
+semantic_concept: an owl standing on a wire
+target: output/reinit_an_owl_standing_on_a_wire/init_svg/an_owl_standing_on_a_wire.svg
+token: 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
+trainable:
+  bg: false
+  record: true
+  stroke: false
+use_img_local: true
+use_svg_local: true
+use_wandb: 0
+use_ycrcb: false
+wandb_user: none
+xing_loss_weight: 0

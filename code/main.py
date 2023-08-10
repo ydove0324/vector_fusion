@@ -24,6 +24,7 @@ from utils import (
     save_image,
     preprocess,
     learning_rate_decay,
+    Learning_rate_decay,
     combine_word,
     create_video)
 import wandb
@@ -110,7 +111,7 @@ def filter(shapes,shape_groups,tag):
             cnt += 1
             shape_groups_filter.append(shape_group)
     return [shapes[i] for i in range(n) if tag[i] == True],shape_groups_filter
-def filter_low_opacity(shapes,shape_groups,threshold=0.2,pr=1):
+def filter_low_opacity(shapes,shape_groups,threshold=0.1,pr=1):
     tag = [0 if shape_group.fill_color[-1] <= threshold and npr.uniform(0,1) <= pr else 1 for shape_group in shape_groups]
     return filter(shapes,shape_groups,tag)
 
@@ -219,11 +220,11 @@ def get_area(w,h,shape,max_area=64):
                 return area,polys
     return area,polys
 
-def filter_low_area(shapes,shape_groups,areas,max_area=32,pr=1):
+def filter_low_area(shapes,shape_groups,areas,max_area=12,pr=1):
     tag = [0 if area < max_area and npr.uniform(0,1) <= pr else 1 for area in areas]
     return filter(shapes,shape_groups,tag)
 
-def reinit(w,h,shapes,shape_groups,threshold=0.15,trainable=None,only_filter=False):
+def reinit(w,h,shapes,shape_groups,threshold=0.1,trainable=None,only_filter=False):
     pr = 0.5 if only_filter == True else 1
     scale = 0.6 if only_filter == True else 1
     shapes_filter,shape_groups_filter = filter_low_opacity(shapes=shapes,shape_groups=shape_groups,threshold=threshold*scale,pr=pr)
@@ -233,7 +234,7 @@ def reinit(w,h,shapes,shape_groups,threshold=0.15,trainable=None,only_filter=Fal
         area, cps = get_area(w, h, shape)
         areas.append(area)
         cps_poly.append(cps)
-    shapes_filter,shape_groups_filter = filter_low_area(shapes=shapes_filter,shape_groups=shape_groups_filter,areas=areas,max_area=32,pr=pr)
+    shapes_filter,shape_groups_filter = filter_low_area(shapes=shapes_filter,shape_groups=shape_groups_filter,areas=areas,max_area=24,pr=pr)
     print(areas)
     # render = pydiffvg.RenderFunction.apply
     # scene_args = pydiffvg.RenderFunction.serialize_scene(w, h, shapes_filter, shape_groups_filter)
@@ -336,12 +337,13 @@ if __name__ == "__main__":
     if cfg.loss.conformal.use_conformal_loss:
         conformal_loss = ConformalLoss(parameters, device, cfg.optimized_letter, shape_groups)
 
-    lr_lambda = lambda step: learning_rate_decay(step, cfg.lr.lr_init, cfg.lr.lr_warmup, cfg.lr.lr_final,num_iter,
-                                                max_warmup_step=cfg.lr.max_warmup_step,T_max=200)
-    lr_schedule = [lr_lambda(i) for i in range(num_iter)]
-    schedule = [i for i in range(num_iter)]
-    plt.scatter(schedule, lr_schedule)
-    plt.show()
+    lr_lambda = Learning_rate_decay(cfg.lr.lr_init, cfg.lr.lr_warmup, cfg.lr.lr_final,num_iter,
+                                                max_warmup_step=cfg.lr.max_warmup_step,T0=50,T_mult=1.5)
+    # lr_schedule = [lr_lambda(i) for i in range(num_iter)]
+    # schedule = [i for i in range(num_iter)]
+    # _,ax = plt.subplots()
+    # ax.plot(schedule,lr_schedule)
+    # plt.show()
     scheduler = LambdaLR(optim, lr_lambda=lr_lambda, last_epoch=-1)  # lr.base * lrlambda_f
 
     print("start training")
@@ -428,9 +430,15 @@ if __name__ == "__main__":
         loss.backward()
         optim.step()
         scheduler.step()
+        if (step + 1) % reinit_time == 0:
+            filename = os.path.join(
+            cfg.experiment_dir, "output-svg", f"output{step+1}.svg")
+            check_and_create_dir(filename)
+            save_svg.save_svg(
+                filename, w, h, shapes, shape_groups)
 
     filename = os.path.join(
-        cfg.experiment_dir, "output-svg", "output.svg")
+        cfg.experiment_dir, "output-svg", "output_final.svg")
     check_and_create_dir(filename)
     save_svg.save_svg(
         filename, w, h, shapes, shape_groups)

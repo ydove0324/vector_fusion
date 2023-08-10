@@ -92,6 +92,35 @@ def get_data_augs(cut_size):
 
 
 '''pytorch adaptation of https://github.com/google/mipnerf'''
+class Learning_rate_decay:
+    def __init__(self,
+                lr_init,
+                lr_warmup,
+                lr_final,
+                max_step,
+                max_warmup_step,
+                T0 = 50,
+                T_mult = 1.5):
+        self.lr_init = lr_init
+        self.lr_warmup = lr_warmup
+        self.lr_final = lr_final
+        self.max_step = max_step
+        self.max_warmup_step = max_warmup_step
+        self.T_schedule = [T0]
+        self.T_mult = T_mult
+    def __call__(self,step):
+        if step < self.max_warmup_step:
+            return self.lr_init + (self.lr_warmup - self.lr_init) / self.max_warmup_step * step
+        else:
+            step -= self.max_warmup_step
+            for T_max in self.T_schedule:
+                if step >= T_max:
+                    step -= T_max
+                else:
+                    return self.lr_final + 0.5 * (self.lr_warmup - self.lr_final) * (1 + np.cos(step / T_max * np.pi))
+            T_max = self.T_schedule[-1] * self.T_mult
+            self.T_schedule.append(T_max)
+            return self.lr_final + 0.5 * (self.lr_warmup - self.lr_final) * (1 + np.cos(step / T_max * np.pi))    
 def learning_rate_decay(step,
                         lr_init,
                         lr_warmup,
