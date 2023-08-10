@@ -223,7 +223,7 @@ def filter_low_area(shapes,shape_groups,areas,max_area=32,pr=1):
     tag = [0 if area < max_area and npr.uniform(0,1) <= pr else 1 for area in areas]
     return filter(shapes,shape_groups,tag)
 
-def reinit(w,h,shapes,shape_groups,threshold=0.3,trainable=None,only_filter=False):
+def reinit(w,h,shapes,shape_groups,threshold=0.15,trainable=None,only_filter=False):
     pr = 0.5 if only_filter == True else 1
     scale = 0.6 if only_filter == True else 1
     shapes_filter,shape_groups_filter = filter_low_opacity(shapes=shapes,shape_groups=shape_groups,threshold=threshold*scale,pr=pr)
@@ -233,7 +233,7 @@ def reinit(w,h,shapes,shape_groups,threshold=0.3,trainable=None,only_filter=Fals
         area, cps = get_area(w, h, shape)
         areas.append(area)
         cps_poly.append(cps)
-    shapes_filter,shape_groups_filter = filter_low_area(shapes=shapes_filter,shape_groups=shape_groups_filter,areas=areas,max_area=64,pr=pr)
+    shapes_filter,shape_groups_filter = filter_low_area(shapes=shapes_filter,shape_groups=shape_groups_filter,areas=areas,max_area=32,pr=pr)
     print(areas)
     # render = pydiffvg.RenderFunction.apply
     # scene_args = pydiffvg.RenderFunction.serialize_scene(w, h, shapes_filter, shape_groups_filter)
@@ -358,14 +358,14 @@ if __name__ == "__main__":
                                                 max_warmup_step=cfg.lr.max_warmup_step)
             new_scheduler = LambdaLR(optim, lr_lambda=lr_lambda, last_epoch=-1)  # lr.base * lrlambda_f
             scheduler = new_scheduler
-        elif res_step > 600 and step % reinit_time == 0:
-            shapes,shape_groups,para_bg, parameters = reinit(w,h,shapes,shape_groups,trainable=cfg.trainable,only_filter=True)
-            pg = [{'params': parameters[ki], 'lr': cfg.lr_base[ki]} for ki in sorted(parameters.keys())]
-            optim = torch.optim.Adam(pg, betas=(0.9, 0.9), eps=1e-6)
-            lr_lambda = lambda step: learning_rate_decay(step, cfg.lr.lr_init, cfg.lr.lr_warmup, cfg.lr.lr_final,num_iter,
-                                                        max_warmup_step=cfg.lr.max_warmup_step)
-            new_scheduler = LambdaLR(optim, lr_lambda=lr_lambda, last_epoch=-1) 
-            scheduler = new_scheduler
+        # elif res_step > 700 and step % reinit_time == 0:
+        #     shapes,shape_groups,para_bg, parameters = reinit(w,h,shapes,shape_groups,trainable=cfg.trainable,only_filter=True)
+        #     pg = [{'params': parameters[ki], 'lr': cfg.lr_base[ki]} for ki in sorted(parameters.keys())]
+        #     optim = torch.optim.Adam(pg, betas=(0.9, 0.9), eps=1e-6)
+        #     lr_lambda = lambda step: learning_rate_decay(step, cfg.lr.lr_init, cfg.lr.lr_warmup, cfg.lr.lr_final,num_iter,
+        #                                                 max_warmup_step=cfg.lr.max_warmup_step)
+        #     new_scheduler = LambdaLR(optim, lr_lambda=lr_lambda, last_epoch=-1) 
+        #     scheduler = new_scheduler
         if cfg.save.init and step == 0:
             print('saving init')
             filename = os.path.join(

@@ -1,0 +1,55 @@
+batch_size: 1
+caption: an owl standing on a wire. minimal flat 2d vector. lineal color. on a white
+  background. trending on artstation
+config: code/config/base.yaml
+cut_size: 512
+diffusion:
+  guidance_scale: 100
+  model: runwayml/stable-diffusion-v1-5
+  timesteps: 1000
+experiment: reinit
+experiment_dir: output/reinit_an_owl_standing_on_a_wire
+filename: an_owl_standing_on_a_wire
+level_of_cc: 0
+log_dir: output/reinit_an_owl_standing_on_a_wire
+loss:
+  conformal:
+    use_conformal_loss: false
+  tone:
+    use_tone_loss: false
+  use_sds_loss: true
+lr:
+  lr_final: 0.05
+  lr_init: 0.02
+  lr_warmup: 0.2
+  max_warmup_step: 500
+lr_base:
+  bg: 0.005
+  color: 0.02
+  point: 1
+  stroke_color: 0.02
+  stroke_width: 0.3
+num_iter: 1500
+optim_path: 128
+parent_config: baseline
+render_size: 600
+save:
+  image: true
+  init: true
+  video: true
+  video_frame_freq: 1
+seed: 147
+semantic_concept: an owl standing on a wire
+target: output/reinit_an_owl_standing_on_a_wire/init_svg/an_owl_standing_on_a_wire.svg
+token: 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
+trainable:
+  bg: false
+  color: true
+  point: true
+  stroke_color: false
+  stroke_width: false
+use_img_local: true
+use_svg_local: true
+use_wandb: 0
+wandb_user: none
+xing_loss_weight: 0
