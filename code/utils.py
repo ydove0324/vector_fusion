@@ -94,37 +94,20 @@ def get_data_augs(cut_size):
 '''pytorch adaptation of https://github.com/google/mipnerf'''
 def learning_rate_decay(step,
                         lr_init,
+                        lr_warmup,
                         lr_final,
-                        max_steps,
-                        lr_delay_steps=0,
-                        lr_delay_mult=1):
-  """Continuous learning rate decay function.
-  The returned rate is lr_init when step=0 and lr_final when step=max_steps, and
-  is log-linearly interpolated elsewhere (equivalent to exponential decay).
-  If lr_delay_steps>0 then the learning rate will be scaled by some smooth
-  function of lr_delay_mult, such that the initial learning rate is
-  lr_init*lr_delay_mult at the beginning of optimization but will be eased back
-  to the normal learning rate when steps>lr_delay_steps.
-  Args:
-    step: int, the current optimization step.
-    lr_init: float, the initial learning rate.
-    lr_final: float, the final learning rate.
-    max_steps: int, the number of steps during optimization.
-    lr_delay_steps: int, the number of steps to delay the full learning rate.
-    lr_delay_mult: float, the multiplier on the rate when delaying it.
-  Returns:
-    lr: the learning for current step 'step'.
-  """
-  if lr_delay_steps > 0:
-    # A kind of reverse cosine decay.
-    delay_rate = lr_delay_mult + (1 - lr_delay_mult) * np.sin(
-        0.5 * np.pi * np.clip(step / lr_delay_steps, 0, 1))
-  else:
-    delay_rate = 1.
-  t = np.clip(step / max_steps, 0, 1)
-  log_lerp = np.exp(np.log(lr_init) * (1 - t) + np.log(lr_final) * t)
-  return delay_rate * log_lerp
-
+                        max_step,
+                        max_warmup_step,
+                        T_max = 0):
+    
+    if T_max == 0:
+        T_max = max_step - max_warmup_step
+    # 处于warm_up阶段
+    if step < max_warmup_step:
+        return lr_init + (lr_warmup - lr_init) / max_warmup_step * step
+    else:
+        step -= max_warmup_step
+        return lr_final + 0.5 * (lr_warmup - lr_final) * (1 + np.cos(step/T_max * np.pi))
 
 
 def save_image(img, filename, gamma=1):

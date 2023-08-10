@@ -336,10 +336,12 @@ if __name__ == "__main__":
     if cfg.loss.conformal.use_conformal_loss:
         conformal_loss = ConformalLoss(parameters, device, cfg.optimized_letter, shape_groups)
 
-    lr_lambda = lambda step: learning_rate_decay(step, cfg.lr.lr_init, cfg.lr.lr_final, num_iter,
-                                                 lr_delay_steps=cfg.lr.lr_delay_steps,
-                                                 lr_delay_mult=cfg.lr.lr_delay_mult) / cfg.lr.lr_init
-
+    lr_lambda = lambda step: learning_rate_decay(step, cfg.lr.lr_init, cfg.lr.lr_warmup, cfg.lr.lr_final,num_iter,
+                                                max_warmup_step=cfg.lr.max_warmup_step,T_max=200)
+    lr_schedule = [lr_lambda(i) for i in range(num_iter)]
+    schedule = [i for i in range(num_iter)]
+    plt.scatter(schedule, lr_schedule)
+    plt.show()
     scheduler = LambdaLR(optim, lr_lambda=lr_lambda, last_epoch=-1)  # lr.base * lrlambda_f
 
     print("start training")
@@ -352,18 +354,16 @@ if __name__ == "__main__":
             shapes,shape_groups,para_bg, parameters = reinit(w,h,shapes,shape_groups,trainable=cfg.trainable)
             pg = [{'params': parameters[ki], 'lr': cfg.lr_base[ki]} for ki in sorted(parameters.keys())] # 这个写法要注意
             optim = torch.optim.Adam(pg, betas=(0.9, 0.9), eps=1e-6)
-            lr_lambda = lambda step: learning_rate_decay(step, cfg.lr.lr_init, cfg.lr.lr_final, num_iter,
-                                                 lr_delay_steps=cfg.lr.lr_delay_steps,
-                                                 lr_delay_mult=cfg.lr.lr_delay_mult) / cfg.lr.lr_init
+            lr_lambda = lambda step: learning_rate_decay(step, cfg.lr.lr_init, cfg.lr.lr_warmup, cfg.lr.lr_final,num_iter,
+                                                max_warmup_step=cfg.lr.max_warmup_step)
             new_scheduler = LambdaLR(optim, lr_lambda=lr_lambda, last_epoch=-1)  # lr.base * lrlambda_f
             scheduler = new_scheduler
         elif res_step > 600 and step % reinit_time == 0:
             shapes,shape_groups,para_bg, parameters = reinit(w,h,shapes,shape_groups,trainable=cfg.trainable,only_filter=True)
             pg = [{'params': parameters[ki], 'lr': cfg.lr_base[ki]} for ki in sorted(parameters.keys())]
             optim = torch.optim.Adam(pg, betas=(0.9, 0.9), eps=1e-6)
-            lr_lambda = lambda step: learning_rate_decay(step, cfg.lr.lr_init, cfg.lr.lr_final, num_iter,
-                                                 lr_delay_steps=cfg.lr.lr_delay_steps,
-                                                 lr_delay_mult=cfg.lr.lr_delay_mult) / cfg.lr.lr_init
+            lr_lambda = lambda step: learning_rate_decay(step, cfg.lr.lr_init, cfg.lr.lr_warmup, cfg.lr.lr_final,num_iter,
+                                                        max_warmup_step=cfg.lr.max_warmup_step)
             new_scheduler = LambdaLR(optim, lr_lambda=lr_lambda, last_epoch=-1) 
             scheduler = new_scheduler
         if cfg.save.init and step == 0:

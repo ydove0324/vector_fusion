@@ -4,13 +4,13 @@ set -e
 
 USE_WANDB=1 # CHANGE IF YOU WANT WANDB
 WANDB_USER="none"
-SEED=331
+SEED=147
 OPTIM_PATH=128
 
 EXPERIMENT=baseline
 
 CONCEPT=bicycle
-TARGET=("an armchair in the shape of an avocado" "a knight holding a long sword")
+TARGET=("an owl standing on a wire" "bicycle")
 USE_IMG_LOCAL=true
 USE_SVG_LOCAL=true
 # WORD=BUNNY

@@ -7,11 +7,11 @@ diffusion:
   guidance_scale: 100
   model: runwayml/stable-diffusion-v1-5
   timesteps: 1000
-experiment: baseline
-experiment_dir: output/baseline_A_tall_horse_next_to_a_red_car
+experiment: reinit
+experiment_dir: output/reinit_A_tall_horse_next_to_a_red_car
 filename: A_tall_horse_next_to_a_red_car
 level_of_cc: 0
-log_dir: output/baseline_A_tall_horse_next_to_a_red_car
+log_dir: output/reinit_A_tall_horse_next_to_a_red_car
 loss:
   conformal:
     use_conformal_loss: false
@@ -31,7 +31,7 @@ lr_base:
   stroke_width: 0.3
 num_iter: 1500
 optim_path: 128
-parent_config: ''
+parent_config: baseline
 render_size: 600
 save:
   image: true
@@ -40,7 +40,7 @@ save:
   video_frame_freq: 1
 seed: 331
 semantic_concept: A tall horse next to a red car
-target: output/baseline_A_tall_horse_next_to_a_red_car\init_svg\A_tall_horse_next_to_a_red_car.svg
+target: output/reinit_A_tall_horse_next_to_a_red_car\init_svg\A_tall_horse_next_to_a_red_car.svg
 token: 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
 trainable:
   bg: false
