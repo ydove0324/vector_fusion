@@ -8,6 +8,19 @@ vector_fusion 论文复现
 <div align="center">
     <img src="images/bicycle.png">
     <img src="images/shiba_inu.png">
+    <img src="images/owl.png"> 
+    <img src="images/train.png">
+    <img src="images/warrior.png">
+    <img src="images/fox.png">
+    <img src="images/frog.png">
+    <img src="images/panda.png">
+    <img src="images/spaceship.png">
+    <img src="images/coffeemachine.png">
+    <img src="images/saxophone.png">
+    <img src="images/pyramid.png"> 
+    <img src="images/crown.png">
+    <img src="images/Avocado.png">
+    <img src="images/Eiffel_Tower.png">
 </div>
 <br><br>
 
