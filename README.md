@@ -6,7 +6,8 @@ vector_fusion 论文复现
 
 <br>
 <div align="center">
-    <img src="images/bicycle.png" width="100%">
+    <img src="images/bicycle.png">
+    <img src="images/shiba_inu.png">
 </div>
 <br><br>
 
@@ -55,8 +56,8 @@ python setup.py install
 5. Paste your HuggingFace [access token](https://huggingface.co/settings/tokens) for StableDiffusion in the TOKEN file.
 ## Run Experiments 
 ```bash
-conda activate word
-cd Word-As-Image
+conda activate vector_fusion
+cd vector_fusion
 
 # Please modify the parameters accordingly in the file and run:
 bash run_vector_fusion.sh
