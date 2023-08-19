@@ -1,55 +1,32 @@
-# Word-As-Image for Semantic Typography (SIGGRAPH 2023)
+vector_fusion 论文复现
 
 
 
-[![arXiv](https://img.shields.io/badge/📃-arXiv%20-red.svg)](https://arxiv.org/abs/2303.01818)
-[![webpage](https://img.shields.io/badge/🌐-Website%20-blue.svg)](https://wordasimage.github.io/Word-As-Image-Page/) 
-[![Huggingface space](https://img.shields.io/badge/🤗-Demo%20-yellow.svg)](https://huggingface.co/spaces/SemanticTypography/Word-As-Image)
-[![Youtube](https://img.shields.io/badge/📽️-Video%20-orchid.svg)](https://www.youtube.com/watch?v=9D12a6RCQaw)
+[![arXiv](https://img.shields.io/badge/📃-arXiv%20-red.svg)](https://arxiv.org/abs/2211.11319)
 
 <br>
 <div align="center">
-    <img src="images/teaser.png" width="100%">
+    <img src="images/bicycle.png" width="100%">
 </div>
 <br><br>
-A few examples of our <b>W</b>ord-<b>A</b>s-<b>I</b>mage illustrations in various fonts and for different textual concept. The semantically adjusted letters are created
-completely automatically using our method, and can then be used for further creative design as we illustrate here.<br><br>
 
-> Shir Iluz*, Yael Vinker*, Amir Hertz, Daniel Berio, Daniel Cohen-Or, Ariel Shamir    
-> \* Denotes equal contribution  
->
->A word-as-image is a semantic typography technique where a word illustration
-presents a visualization of the meaning of the word, while also
-preserving its readability. We present a method to create word-as-image
-illustrations automatically. This task is highly challenging as it requires
-semantic understanding of the word and a creative idea of where and how to
-depict these semantics in a visually pleasing and legible manner. We rely on
-the remarkable ability of recent large pretrained language-vision models to
-distill textual concepts visually. We target simple, concise, black-and-white
-designs that convey the semantics clearly.We deliberately do not change the
-color or texture of the letters and do not use embellishments. Our method
-optimizes the outline of each letter to convey the desired concept, guided by
-a pretrained Stable Diffusion model. We incorporate additional loss terms
-to ensure the legibility of the text and the preservation of the style of the
-font. We show high quality and engaging results on numerous examples
-and compare to alternative techniques.
+这是一篇小众的自动化矢量图生成,但是很有意思!
 
 
-## Description
-Official implementation of Word-As-Image for Semantic Typography paper.
+
 <br>
 
 ## Setup
 
 1. Clone the repo:
 ```bash
-git clone https://github.com/WordAsImage/Word-As-Image.git
-cd Word-As-Image
+git clone https://github.com/ydove0324/vector_fusion.git
+cd vector_fusion
 ```
 2. Create a new conda environment and install the libraries:
 ```bash
-conda create --name word python=3.8.15
-conda activate word
+conda create --name vector_fusion python=3.8.15
+conda activate vector_fusion
 pip install torch==1.12.1+cu113 torchvision==0.13.1+cu113 --extra-index-url https://download.pytorch.org/whl/cu113
 conda install -y numpy scikit-image
 conda install -y -c anaconda cmake
@@ -59,6 +36,7 @@ pip install opencv-python==4.5.4.60
 pip install kornia==0.6.8
 pip install wandb
 pip install shapely
+pip install open_clip_torch
 ```
 
 3. Install diffusers:
@@ -81,70 +59,34 @@ conda activate word
 cd Word-As-Image
 
 # Please modify the parameters accordingly in the file and run:
-bash run_word_as_image.sh
+bash run_vector_fusion.sh
 
 # Or run :
-python code/main.py --experiment <experiment> --semantic_concept <concept> --optimized_letter <letter> --seed <seed> --font <font_name> --use_wandb <0/1> --wandb_user <user name> 
+python code/main.py --experiment <experiment> --semantic_concept <concept> --seed <seed> 
+如:
+python code/main.py --experiment reinit --seed 147 --semantic_concept "bicycle" --optim_path 128 
 ```
-* ```--semantic_concept``` : the semantic concept to insert
-* ```--optimized_letter``` : one letter in the word to optimize
-* ```--font``` : font name, the <font name>.ttf file should be located in code/data/fonts/
+* ```--semantic_concept``` : 你希望根据该语义信息生成图片,如"bicycle"
+* ```--optim_path``` :  多少个矢量图贝塞尔曲线, 越多矢量图越精细, 但速度也越慢, 默认128, 若配置不行, 可以64或32
 
 Optional arguments:
-* ```--word``` : The text to work on, default: the semantic concept
-* ```--config``` : Path to config file, default: code/config/base.yaml
-* ```--experiment``` : You can specify any experiment in the config file, default: conformal_0.5_dist_pixel_100_kernel201
-* ```--log_dir``` : Default: output folder
 * ```--prompt_suffix``` : Default: "minimal flat 2d vector. lineal color. trending on artstation"
 
-### Examples
-```bash
-python code/main.py  --semantic_concept "BUNNY" --optimized_letter "Y" --font "KaushanScript-Regular" --seed 0
-```
-<br>
-<div align="center">
-    <img src="images/KaushanScript-Regular_BUNNY_Y.svg" width="22%">
-</div>
 
 
-```bash
-python code/main.py  --semantic_concept "LEAVES" --word "NATURE" --optimized_letter "T" --font "HobeauxRococeaux-Sherman" --seed 0
-```
-<br>
-<div align="center">
-    <img src="images/HobeauxRococeaux-Sherman_NATURE_T.svg" width="25%">
-</div>
 
-* Pay attention, as the arguments are case-sensitive, but it can handle both upper and lowercase letters depending on the input letters.
-
-
-## Tips
-If the outcome does not meet your quality expectations, you could try the following options:
-
-1. Adjusting the weight 𝛼 of the L𝑎𝑐𝑎𝑝 loss, which preserves the letter's structure after deformation.
-2. Modifying the 𝜎 parameter of the low-pass filter used in the L𝑡𝑜𝑛𝑒 loss, which limits the degree of deviation from the original letter.
-3. Changing the number of control points, as this can influence the outputs.
-4. Experimenting with different seeds, as each may produce slightly different results.
-5. Changing the font type, as this can also result in various outputs.
 
 
 
 
 ## Acknowledgement
-Our implementation is based ob Stable Diffusion text-to-image model from Hugging Face's [Diffusers](https://github.com/huggingface/diffusers) library, combined with [Diffvg](https://github.com/BachiLi/diffvg). The framework is built on [Live](https://github.com/Picsart-AI-Research/LIVE-Layerwise-Image-Vectorization).
+这些代码基于以下工作
+1. [Diffusers](https://github.com/huggingface/diffusers) 
+2. [Diffvg](https://github.com/BachiLi/diffvg). 
+3. [Live](https://github.com/Picsart-AI-Research/LIVE-Layerwise-Image-Vectorization).
+4. [Word_As_Image](https://github.com/Shiriluz/Word-As-Image)
+5. [open-clip](https://github.com/mlfoundations/open_clip)
     
-## Citation
-If you use this code for your research, please cite the following work: 
-```
-@misc{iluz2023wordasimage,
-      title={Word-As-Image for Semantic Typography}, 
-      author={Shir Iluz and Yael Vinker and Amir Hertz and Daniel Berio and Daniel Cohen-Or and Ariel Shamir},
-      year={2023},
-      eprint={2303.01818},
-      archivePrefix={arXiv},
-      primaryClass={cs.CV}
-}
-```
     
 ## Licence
 This work is licensed under a [Creative Commons Attribution-ShareAlike 4.0 International License](http://creativecommons.org/licenses/by-sa/4.0/).

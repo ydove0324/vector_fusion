@@ -64,7 +64,10 @@ experiment_1357:
   path_schedule:
     type: list
     schedule: [1, 3, 5, 7]
-
+experiment_32:
+  path_schedule:
+    type: list
+    schedule: [2,4,8,18]
 experiment_64:
   path_schedule:
     type: list
