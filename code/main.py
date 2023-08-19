@@ -272,7 +272,7 @@ if __name__ == "__main__":
     # preprocess(cfg.font, cfg.word, cfg.optimized_letter, cfg.level_of_cc)
     cfg.render_size = 512 # 仅供测试用
     compress_scale = 1
-    pipe = StableDiffusionPipeline.from_pretrained(cfg.diffusion.model, torch_dtype=torch.float16,use_auth_token=cfg.token,local_files_only=True)
+    pipe = StableDiffusionPipeline.from_pretrained(cfg.diffusion.model, torch_dtype=torch.float16,use_auth_token=cfg.token,local_files_only=False)
     pipe = pipe.to(device)
     if cfg.use_svg_local == False or os.path.isfile(cfg.target) == False:
         png_origin_path = os.path.join(cfg.experiment_dir,'init_png',f"{cfg.filename}_origin.png")    
